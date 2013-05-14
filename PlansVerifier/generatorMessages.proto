@@ -1,0 +1,47 @@
+
+package messages;
+
+option java_package = "pl.agh.miss.proto";
+option java_outer_classname = "GeneratorMessage";
+
+//message PassTime {
+//	required int32 machineId = 1;
+//	required int32 time = 2;
+//}
+//
+//message Plan {
+	//required int32 jobId = 1;
+//	repeated PassTime times = 2;
+//}
+//
+//message PlanRemoval {
+	//required int32 jobId = 1;
+//}
+//
+//////////////////////////////////////
+message PassTime {
+	required int32 machineId = 1;
+	required int64 time = 2;
+}
+message TimeTransitions { //tablica przejsc
+	required int32 jobId = 1;
+	repeated PassTime times = 2;
+}
+message TimeTransitionsRemoval { //usuwanie rekordow
+	required int32 jobId = 1;
+}
+//message TimeTransitionsTable { //tablica przejsc
+//	repeated TimeTransitionsEntry table = 1;
+//}
+message Task {
+	required int32 jobId = 1;
+	required int32 machineId = 2;
+}
+message Plan {
+	required int32 planId = 1;
+	repeated Task tasks = 2;
+}
+message PlanRemoval {
+	required int32 planId = 1;
+}
+
