@@ -25,6 +25,10 @@ public class Evaluator {
 	}
 
 	public synchronized void sendResults(Map<Plan, Long> resultsMap) {
+		//TEST
+		System.out.println(resultsMap);
+		if (true ) return;
+		
 		//indicates if there was change beteen currently executed plan and new plan
 		boolean planChanged = false;
 		for (Plan plan : resultsMap.keySet()) {
