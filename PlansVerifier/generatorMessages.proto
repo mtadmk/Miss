@@ -30,9 +30,6 @@ message TimeTransitions { //tablica przejsc
 message TimeTransitionsRemoval { //usuwanie rekordow
 	required int32 jobId = 1;
 }
-//message TimeTransitionsTable { //tablica przejsc
-//	repeated TimeTransitionsEntry table = 1;
-//}
 message Task {
 	required int32 jobId = 1;
 	required int32 machineId = 2;
@@ -44,4 +41,7 @@ message Plan {
 message PlanRemoval {
 	required int32 planId = 1;
 }
-
+message PlanAndTransitions {
+	required Plan plan = 1;
+	repeated TimeTransitions timeTransitions = 2;
+}

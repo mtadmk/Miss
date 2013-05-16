@@ -114,8 +114,8 @@ public class PlanManager {
 										.getBody());
 								System.out
 										.println("[PlanManager] Received plan to remove: "
-												+ pr.getTaskId());
-								removeById(pr.getTaskId());
+												+ pr.getPlanId());
+								removeById(pr.getPlanId());
 								break;
 							case REMOVE_PLAN_ALL_BIND_KEY:
 								// usuwanie wszystkich jobow i zatrzymywanie
@@ -225,7 +225,7 @@ public class PlanManager {
 	}
 
 	private synchronized void addPlan(Plan plan) {
-		plans.put(plan.getTaskId(), plan);
+		plans.put(plan.getPlanId(), plan);
 		if (plans.size() >= MACHINES_COUNT) {
 			setEnoughPlans(true);
 			runSimulation();
@@ -241,7 +241,7 @@ public class PlanManager {
 				Plan plan = plans.get(planId);
 				plans.remove(planId);
 				activePlans.put(planId, plan);
-				activeAgents.put(plan.getTaskId(), new CommunicationAgent(plan,
+				activeAgents.put(plan.getPlanId(), new CommunicationAgent(plan,
 						timeTransitions));
 				// runSimulationforPlan(plan);
 
