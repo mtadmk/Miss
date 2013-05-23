@@ -189,7 +189,6 @@ public class SimulatedController {
 				return 0;
 			}
 
-			
 			int jobId = task.getJobId();
 			int machineId = task.getMachineId();
 			long time = 0;
@@ -253,7 +252,9 @@ public class SimulatedController {
 				setSimulationState(simulationState.getState() ,machineSlotsList,	progressPercentage);
 			}
 		}
-		
+		if (isCancelled.get()) {
+			return 0;
+		}
 		setSimulationState(justEndingState);
 		long max = 0;
 		for (List<Long> tmpList : machineSlotsList) {
