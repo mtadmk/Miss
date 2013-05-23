@@ -172,13 +172,14 @@ public class SimulatedController {
 		setSimulationState(pointlessToWaitState);
 
 		int taskIt = 0;
+		long taskSize = taskList.size();
+		long progressPercentage = 0;
 		for (Task task : taskList) {
 			if (isCancelled.get()) {
 				return 0;
 			}
-			if (taskIt > taskList.size() * worthWaitingPercent) {
-				setSimulationState(worthWaitingState);
-			}
+
+			
 			int jobId = task.getJobId();
 			int machineId = task.getMachineId();
 			long time = 0;
@@ -243,8 +244,14 @@ public class SimulatedController {
 					System.out.println("proper");
 				}
 			}
-
+			progressPercentage = (long)taskIt/taskSize;
+			if (progressPercentage >=  worthWaitingPercent) {
+				setSimulationState(worthWaitingState,machineSlotsList,	progressPercentage);
+			}else{
+				setSimulationState(simulationState.getState() ,machineSlotsList,	progressPercentage);
+			}
 		}
+		
 		setSimulationState(justEndingState);
 		long max = 0;
 		for (List<Long> tmpList : machineSlotsList) {
@@ -256,13 +263,24 @@ public class SimulatedController {
 		return max;
 	}
 
-	private long magicznaKula() {
-		Random r = new Random();
-		return r.nextInt(100);
+	private long magicznaKula(List<List<Long>> machineSlotsList, long percentage) {
+//		Random r = new Random();
+//		return r.nextInt(100);
+		long max = 0;
+		for (List<Long> tmpList : machineSlotsList) {
+			long tmpMax = tmpList.get(tmpList.size() - 1);
+			max = Math.max(max, tmpMax);
+		}
+		
+		return max * ((long)1/percentage);
 	}
 
+	private void setSimulationState(int state, List<List<Long>> machineSlotsList, long percentage) {
+		this.simulationState = createState(state, magicznaKula(machineSlotsList, percentage));
+	}
+	
 	private void setSimulationState(int state) {
-		this.simulationState = createState(state, magicznaKula());
+		this.simulationState = createState(state, -1);
 	}
 
 	/**
