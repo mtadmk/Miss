@@ -263,10 +263,12 @@ public class PlanManager {
 	}
 
 	private synchronized void stopSimulationByid(int jobId) {
-		Future<ResultStruct> fr = this.futureMap.get(jobId);
-		if (fr != null) {
-			fr.cancel(true);
-		}
+		
+		//TODO implement
+//		Future<ResultStruct> fr = this.futureMap.get(jobId);
+//		if (fr != null) {
+//			fr.cancel(true);
+//		}
 		// this.simulationManager.stopSimulationById(jobId);
 		// activeAgents.get(jobId).stopSimulation();
 	}
@@ -379,7 +381,7 @@ public class PlanManager {
 			
 
 			channel1.basicPublish("", RPC_QUEUE_NAME, props, pack.build().toByteArray());
-			System.out.println(" [PlanManager] Sent '" + plan + "'");
+			System.out.println(" [PlanManager] Sent '" + plan.getPlanId() + "'");
 			
 			
 			//actualize current active plans
@@ -418,7 +420,7 @@ public class PlanManager {
 						QueueingConsumer.Delivery delivery = consumer.nextDelivery();
 //						channel1.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
 						PlanQueueInfo pqi = PlanQueueInfo.parseFrom(delivery.getBody());
-						System.out.println("[PLANMANAGER] received: " + pqi);
+						System.out.println("[PLANMANAGER] received: " + pqi.getPlanId());
 						properActivePlans.put(pqi.getPlanId(), pqi.getQueueName());	
 					} catch (ShutdownSignalException
 							| ConsumerCancelledException | InterruptedException | IOException e) {
@@ -438,6 +440,7 @@ public class PlanManager {
 					try {
 						Thread.sleep(1000);
 						if (currentActivePlans.get() < MAX_PLANS_IN_QUEUE){
+							System.out.println("current active plans no " + currentActivePlans.get() + "planssize: " +plans.keySet().size());
 							sendPlanToQueue();
 						}						
 					} catch (InterruptedException | ShutdownSignalException | ConsumerCancelledException | IOException e) {
