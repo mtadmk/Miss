@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantLock;
 
 import pl.agh.miss.proto.GeneratorMessage.PassTime;
 import pl.agh.miss.proto.GeneratorMessage.Plan;
@@ -37,6 +38,8 @@ public class SimulatedController {
 	private static final String REMOVE_ACTIVE_PLAN_MESSAGE = "removeActivePlan";
 	private static final String GET_STATE_MESSAGE = "getState";
 
+	private AtomicBoolean canFinish = new AtomicBoolean(false);
+
 	private Plan plan;
 	private Map<Integer, List<PassTime>> timeTransitions = new HashMap<Integer, List<PassTime>>();
 	private Connection connection;
@@ -44,26 +47,25 @@ public class SimulatedController {
 	private QueueingConsumer consumer;
 
 	private String queueName = UUID.randomUUID().toString().replace("-", "");
-	
+
 	/**
-	 * important
-	 * zobacz createState metode
+	 * important zobacz createState metode
 	 */
 	private SimulationState simulationState;
 
 	/**
-	 * important
-	 * jak zmieni sie na false (ja to zmieniam) to masz przerwac symulacje
+	 * important jak zmieni sie na false (ja to zmieniam) to masz przerwac
+	 * symulacje
 	 */
 	private AtomicBoolean isCancelled = new AtomicBoolean(false);
-	
-	//TODO Tomek te 2 powyzsze zmienne masz utrzymywac aktualne i tyle
-	
+
+	// TODO Tomek te 2 powyzsze zmienne masz utrzymywac aktualne i tyle
+
 	public SimulatedController() {
-		//MOCK		
+		// MOCK
 		this.simulationState = createState(11, 111);
 		//
-				
+
 		ConnectionFactory factory = new ConnectionFactory();
 		factory.setHost("localhost");
 
@@ -100,18 +102,21 @@ public class SimulatedController {
 
 				System.out.println("[SIMULATED CONTROLLER] Plan : " + plan);
 
-				
 				simulationState = createState(1, 111);
-				
-				//MOCK there should be method getJobShopTime Executed
-				long result = 100;
+
+				// MOCK there should be method getJobShopTime Executed
+				long result = 1000;
 				Thread.sleep(10000);
 
-				//zawsze
-//				long result = getJobShopTime();
+				// zawsze
+				// long result = getJobShopTime();
 				simulationState = createState(0, result);
-				System.out.println("[SIMULATED CONTROLLER] Simulation finished");
-				
+				while (!canFinish.get()) {
+					Thread.sleep(500);
+				}
+				System.out
+						.println("[SIMULATED CONTROLLER] Simulation finished");
+
 				// have fun with this.plan and this.timeTransitions
 				// job shop should return only result
 				// long result = getJobShopTime();
@@ -325,11 +330,10 @@ public class SimulatedController {
 		channel.basicPublish("", props.getReplyTo(), replyProps, String
 				.valueOf(result).getBytes("UTF-8"));
 
-//		channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
+		// channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
 	}
 
-	public void getOnePlan(Delivery delivery)
-			throws IOException {
+	public void getOnePlan(Delivery delivery) throws IOException {
 		System.out
 				.println(" [Simulation Controller] Waiting for messages. To exit press CTRL+C");
 		String response = null;
@@ -338,7 +342,7 @@ public class SimulatedController {
 
 		PlanAndTransitions pat = PlanAndTransitions.parseFrom(delivery
 				.getBody());
-//		channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
+		// channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
 		this.plan = pat.getPlan();
 		for (TimeTransitions tt : pat.getTimeTransitionsList()) {
 			this.timeTransitions.put(tt.getJobId(), tt.getTimesList());
@@ -356,26 +360,26 @@ public class SimulatedController {
 		channel.basicPublish("", props.getReplyTo(), replyProps,
 				pq.toByteArray());
 
-//		channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
+		// channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
 	}
-	
+
 	/**
-	 * important 
+	 * important
 	 * 
 	 * 
-	 * @param state : wymysl sobie jakies stany posrednie miedzy 
-	 * 0 -zakonczono symulacje
-	 * 1 - symulacja trwa
-	 * np 2 - warto czekac na koniec symulacji
-	 * 3 - nie warto czekac na koniec symulacji
+	 * @param state
+	 *            : wymysl sobie jakies stany posrednie miedzy 0 -zakonczono
+	 *            symulacje 1 - symulacja trwa np 2 - warto czekac na koniec
+	 *            symulacji 3 - nie warto czekac na koniec symulacji
 	 * @param predictionTime
 	 * @return
 	 */
-	private synchronized SimulationState createState(int state, long predictionTime){
+	private synchronized SimulationState createState(int state,
+			long predictionTime) {
 		SimulationState.Builder b = SimulationState.newBuilder();
 		b.setState(state);
 		b.setPredictedExecutionTime(predictionTime);
-		return b.build();		
+		return b.build();
 	}
 
 	private void startCommunicationThread() {
@@ -392,26 +396,24 @@ public class SimulatedController {
 					connection = factory.newConnection();
 					channel = connection.createChannel();
 
-					channel.queueDeclare(queueName, false,
-							false, false, null);
+					channel.queueDeclare(queueName, false, false, false, null);
 
 					channel.basicQos(1);
 
 					QueueingConsumer consumer1 = new QueueingConsumer(channel);
-					channel.basicConsume(queueName, true,
-							consumer1);
+					channel.basicConsume(queueName, true, consumer1);
 
 					while (true) {
 						QueueingConsumer.Delivery delivery = consumer1
 								.nextDelivery();
-						//unused
+						// unused
 						String msg = new String(delivery.getBody());
 						System.out.println(" [SimulatedController] Received '"
 								+ msg + "'");
-						if (msg.equals(REMOVE_ACTIVE_PLAN_MESSAGE)){
+						if (msg.equals(REMOVE_ACTIVE_PLAN_MESSAGE)) {
 							isCancelled.set(true);
 							sendState(delivery);
-						} else if (msg.equals(GET_STATE_MESSAGE)){
+						} else if (msg.equals(GET_STATE_MESSAGE)) {
 							sendState(delivery);
 						}
 					}
@@ -419,6 +421,15 @@ public class SimulatedController {
 						| ConsumerCancelledException | InterruptedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
+				} finally {
+					if (connection != null) {
+						try {
+							connection.close();
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					}
 				}
 			}
 
@@ -426,8 +437,12 @@ public class SimulatedController {
 				BasicProperties props = delivery.getProperties();
 				BasicProperties replyProps = new BasicProperties.Builder()
 						.correlationId(props.getCorrelationId()).build();
-				Random r = new Random();
 
+				if (simulationState.getState() == 0) {
+					canFinish.set(true);
+				} else {
+					canFinish.set(false);
+				}
 				channel.basicPublish("", props.getReplyTo(), replyProps,
 						simulationState.toByteArray());
 
