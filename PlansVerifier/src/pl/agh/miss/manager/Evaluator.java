@@ -23,7 +23,7 @@ import com.rabbitmq.client.ShutdownSignalException;
 public class Evaluator implements Runnable {
 	private static final String REMOVE_ACTIVE_PLAN_MESSAGE = "removeActivePlan";
 	private static final String GET_STATE_MESSAGE = "getState";
-	private static final int GET_STATE_INTERVAL = 1000;
+	private static final int GET_STATE_INTERVAL = 300;
 	private static final int CONTROLLER_SEND_INTERVAL = 10000;
 	public final static String EXCHANGE_NAME = "EvaluatorBestTime";
 	private final static String BIND_KEY = "EVALUATOR_STANDARD_BIND_KEY";
@@ -72,7 +72,7 @@ public class Evaluator implements Runnable {
 				Thread.sleep(GET_STATE_INTERVAL);
 				for (final Entry<Integer, String> entry : activeplans.entrySet()){
 					SimulationState ss = getState(entry.getKey(), entry.getValue());
-					System.out.println(ss);
+//					System.out.println(ss);
 					if (ss.getState() == 0){ //finished properly
 						this.activeplans.remove(entry.getKey());
 						currentActivePlans.decrementAndGet();
@@ -105,7 +105,7 @@ public class Evaluator implements Runnable {
 			}
 		}
 		
-		channel.basicPublish("", queueName, props, planId.toString().getBytes());
+		channel.basicPublish("", queueName, props, message.getBytes());
 		System.out.println(" [Evaluator] Sent '" + message + "' to " + planId);
 		
 		QueueingConsumer.Delivery delivery = consumer.nextDelivery();
@@ -118,12 +118,14 @@ public class Evaluator implements Runnable {
 		new Thread(new Runnable() {
 			@Override
 			public void run() {
-				try {
-					Thread.sleep(CONTROLLER_SEND_INTERVAL);
-					sendResults(resultsMap);
+				while (true){
+					try {
+						Thread.sleep(CONTROLLER_SEND_INTERVAL);
+						sendResults(resultsMap);
 
-				} catch (InterruptedException e) {
-					e.printStackTrace();
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
 				}
 			}
 
@@ -163,7 +165,7 @@ public class Evaluator implements Runnable {
 					channel.basicPublish(EXCHANGE_NAME, BIND_KEY, null,
 							plan.toByteArray());
 
-					System.out.println(" [Evaluator] Sent '" + plan + "'");
+					System.out.println(" [Evaluator] Sent new plan '" + plan.getPlanId() + "'");
 
 					channel.close();
 					connection.close();

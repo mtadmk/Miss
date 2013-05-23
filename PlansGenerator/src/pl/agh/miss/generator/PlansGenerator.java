@@ -87,19 +87,22 @@ public class PlansGenerator {
 				channel.basicPublish(EXCHANGE_NAME, ADD_TRANSITION_BIND_KEY,
 						null, transition.toByteArray());
 				transitionsMap.put(jobid, transition);
-				System.out.println(" [Generator] Sent '" + transition + "'");
+				System.out.println(" [Generator] Sent trans'" + transition.getJobId() + "'");
 			}
 			
 			//mam poczatkowe tranzycje - i sa wyslane na maszyne
 
 			// insert jobs or other operations
-			int ii = 30;
+			int ii = 3;
 			while (ii-->0) {
 //			while (true) {
 				Plan plan = buildSimplePlan(r.nextInt());
+				if (ii == 0){
+					waitOnTask = plan.getTasks(r.nextInt(plan.getTasksCount()));
+				}
 				channel.basicPublish(EXCHANGE_NAME, ADD_PLAN_BIND_KEY, null,
 						plan.toByteArray());
-				System.out.println(" [Generator] Sent '" + plan.getPlanId() + "'");
+				System.out.println(" [Generator] Sent plan'" + plan.getPlanId() + "'");
 //				Thread.sleep(200 + r.nextInt(500));
 			}
 			
@@ -116,15 +119,18 @@ public class PlansGenerator {
 					channel.basicPublish(EXCHANGE_NAME, ADD_TRANSITION_BIND_KEY,
 							null, transition.toByteArray());
 					transitionsMap.put(jobid, transition);
-					System.out.println(" [Generator] Sent '" + transition + "'");
+					System.out.println(" [Generator] Sent trans'" + transition.getJobId() + "'");
 				} 
 				
-				ii = 30;
+				ii = 3;
 				while (ii-->0) {
 					Plan plan = buildSimplePlan(r.nextInt());
+					if (ii == 0){
+						waitOnTask = plan.getTasks(r.nextInt(plan.getTasksCount()));
+					}
 					channel.basicPublish(EXCHANGE_NAME, ADD_PLAN_BIND_KEY, null,
 							plan.toByteArray());
-					System.out.println(" [Generator] Sent '" + plan.getPlanId() + "'");
+					System.out.println(" [Generator] Sent plan '" + plan.getPlanId() + "'");
 				}	
 				
 				Thread.sleep(6000);
@@ -242,10 +248,11 @@ public class PlansGenerator {
 					channel.basicConsume(queueName, true, consumer);
 
 					while (true) {
+						
 						QueueingConsumer.Delivery delivery = consumer.nextDelivery();
 						setCurrentPlan(Plan.parseFrom(delivery.getBody()));
 						isNewPlan.set(true);
-						System.out.println("[Controller] Received new plan: " + getCurrentPlan());
+						System.out.println("[Controller] Received new plan: " + getCurrentPlan().getPlanId());
 
 					}
 				} catch (IOException e) {
@@ -282,6 +289,7 @@ public class PlansGenerator {
 							e.printStackTrace();
 						}						
 					}
+					System.out.println("CONTROLLER: new plan");
 					boolean areNextTask = false;
 					for (Task task : getCurrentPlan().getTasksList()){
 						if (!areNextTask){
@@ -315,15 +323,21 @@ public class PlansGenerator {
 						}
 						if (task.getJobId() == waitOnTask.getJobId() && task.getMachineId() == waitOnTask.getMachineId()){
 							//if we are in wait for task
-							areNextTask=true;//update transitions
-							for (Integer id : transitionsMap.keySet()){
-								try {
-									channel.basicPublish(EXCHANGE_NAME, ADD_TRANSITION_BIND_KEY,
-											null, transitionsMap.get(id).toByteArray());
-								} catch (IOException e) {
-									// TODO Auto-generated catch block
-									e.printStackTrace();
+							areNextTask=true;
+							//update transitions
+							//firstly remove all actual tasks
+							try {
+								channel.basicPublish(EXCHANGE_NAME, REMOVE_PLAN_ALL_BIND_KEY,
+										null, "".getBytes());
+								for (Integer id : transitionsMap.keySet()){
+									
+										channel.basicPublish(EXCHANGE_NAME, ADD_TRANSITION_BIND_KEY,
+												null, transitionsMap.get(id).toByteArray());
+									
 								}
+							} catch (IOException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
 							}
 						}
 					}
