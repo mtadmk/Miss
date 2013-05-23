@@ -6,10 +6,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import pl.agh.miss.proto.GeneratorMessage.PassTime;
 import pl.agh.miss.proto.GeneratorMessage.Plan;
 import pl.agh.miss.proto.GeneratorMessage.PlanAndTransitions;
+import pl.agh.miss.proto.GeneratorMessage.PlanQueueInfo;
+import pl.agh.miss.proto.GeneratorMessage.SimulationState;
 import pl.agh.miss.proto.GeneratorMessage.Task;
 import pl.agh.miss.proto.GeneratorMessage.TimeTransitions;
 
@@ -28,6 +33,9 @@ public class SimulatedController {
 	private static final String TIME_TRANSITIONS_BIND_KEY = "TIME_TRANSITIONS_BIND_KEY";
 	private static final String PLAN_BIND_KEY = "PLAN_BIND_KEY";
 	private static final String RPC_QUEUE_NAME = "RPC_QUEUE";
+	private static final String RPC_EVALUATOR_QUEUE_NAME = "RPC_EVALUATOR_QUEUE";
+	private static final String REMOVE_ACTIVE_PLAN_MESSAGE = "removeActivePlan";
+	private static final String GET_STATE_MESSAGE = "getState";
 
 	private Plan plan;
 	private Map<Integer, List<PassTime>> timeTransitions = new HashMap<Integer, List<PassTime>>();
@@ -35,7 +43,27 @@ public class SimulatedController {
 	private Channel channel;
 	private QueueingConsumer consumer;
 
+	private String queueName = UUID.randomUUID().toString().replace("-", "");
+	
+	/**
+	 * important
+	 * zobacz createState metode
+	 */
+	private SimulationState simulationState;
+
+	/**
+	 * important
+	 * jak zmieni sie na false (ja to zmieniam) to masz przerwac symulacje
+	 */
+	private AtomicBoolean isCancelled = new AtomicBoolean(false);
+	
+	//TODO Tomek te 2 powyzsze zmienne masz utrzymywac aktualne i tyle
+	
 	public SimulatedController() {
+		//MOCK		
+		this.simulationState = createState(11, 111);
+		//
+				
 		ConnectionFactory factory = new ConnectionFactory();
 		factory.setHost("localhost");
 
@@ -48,7 +76,7 @@ public class SimulatedController {
 			channel.basicQos(1);
 
 			consumer = new QueueingConsumer(channel);
-			channel.basicConsume(RPC_QUEUE_NAME, false, consumer);
+			channel.basicConsume(RPC_QUEUE_NAME, true, consumer);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -67,12 +95,27 @@ public class SimulatedController {
 				QueueingConsumer.Delivery delivery = consumer.nextDelivery();
 				this.getOnePlan(delivery);
 
+				this.startCommunicationThread();
+				this.sendCommunicationQueue(delivery);
+
 				System.out.println("[SIMULATED CONTROLLER] Plan : " + plan);
 
+				
+				simulationState = createState(1, 111);
+				
+				//MOCK there should be method getJobShopTime Executed
+				long result = 100;
+				Thread.sleep(10000);
+
+				//zawsze
+//				long result = getJobShopTime();
+				simulationState = createState(0, result);
+				System.out.println("[SIMULATED CONTROLLER] Simulation finished");
+				
 				// have fun with this.plan and this.timeTransitions
 				// job shop should return only result
-				long result = getJobShopTime();
-				this.sendResult(result, delivery);
+				// long result = getJobShopTime();
+				// this.sendResult(result, delivery);
 			} catch (ShutdownSignalException | ConsumerCancelledException
 					| InterruptedException e) {
 				// TODO Auto-generated catch block
@@ -135,7 +178,8 @@ public class SimulatedController {
 				System.out.println("0 time break");
 				continue;
 			}
-			List<Long> currentJobTimes = jobsTimesList.get(jobsListPosMap.get(jobId));
+			List<Long> currentJobTimes = jobsTimesList.get(jobsListPosMap
+					.get(jobId));
 			List<Long> currentMachineSlots = machineSlotsList.get(machineId);
 			// try to match gap before checked slot (starts from 2nd slot)
 			int insertSlot = -1;
@@ -145,8 +189,10 @@ public class SimulatedController {
 				int prevStop = slotIt - 1;
 				int start = slotIt;
 				int stop = slotIt + 1;
-				if (currentMachineSlots.get(start) - currentMachineSlots.get(prevStop) >= time) {
-					long tmpStartTime = findNoConflictStartTime(currentJobTimes, currentMachineSlots.get(prevStop),
+				if (currentMachineSlots.get(start)
+						- currentMachineSlots.get(prevStop) >= time) {
+					long tmpStartTime = findNoConflictStartTime(
+							currentJobTimes, currentMachineSlots.get(prevStop),
 							currentMachineSlots.get(start), time);
 					if (tmpStartTime != -1) {
 						startTime = tmpStartTime;
@@ -163,17 +209,25 @@ public class SimulatedController {
 				currentMachineSlots.add(2, startTime);
 				currentMachineSlots.add(3, startTime + time);
 				insertBeforeFirstSmallerValue(currentJobTimes, startTime, time);
-				System.out.println(" ,start: " + startTime + ", stop:  " + (startTime + time));
+				System.out.println(" ,start: " + startTime + ", stop:  "
+						+ (startTime + time));
 				System.out.println("empty");
 			} else {
 				if (insertSlot == -1) {
-					int curMachSlotsSizeBeforeInsert = currentMachineSlots.size();
+					int curMachSlotsSizeBeforeInsert = currentMachineSlots
+							.size();
 					startTime = findFirstAvaiableStartTime(currentJobTimes,
-							currentMachineSlots.get(curMachSlotsSizeBeforeInsert - 1), time);
-					currentMachineSlots.add(curMachSlotsSizeBeforeInsert, startTime);
-					currentMachineSlots.add(curMachSlotsSizeBeforeInsert + 1, startTime + time);
-					insertBeforeFirstSmallerValue(currentJobTimes, startTime, time);
-					System.out.println(" ,start: " + startTime + ", stop:  " + (startTime + time));
+							currentMachineSlots
+									.get(curMachSlotsSizeBeforeInsert - 1),
+							time);
+					currentMachineSlots.add(curMachSlotsSizeBeforeInsert,
+							startTime);
+					currentMachineSlots.add(curMachSlotsSizeBeforeInsert + 1,
+							startTime + time);
+					insertBeforeFirstSmallerValue(currentJobTimes, startTime,
+							time);
+					System.out.println(" ,start: " + startTime + ", stop:  "
+							+ (startTime + time));
 					System.out.println("no match - end");
 				}
 				// proper free slot
@@ -181,8 +235,10 @@ public class SimulatedController {
 
 					currentMachineSlots.add(insertSlot, startTime);
 					currentMachineSlots.add(insertSlot + 1, startTime + time);
-					insertBeforeFirstSmallerValue(currentJobTimes, startTime, time);
-					System.out.println(" ,start: " + startTime + ", stop:  " + (startTime + time));
+					insertBeforeFirstSmallerValue(currentJobTimes, startTime,
+							time);
+					System.out.println(" ,start: " + startTime + ", stop:  "
+							+ (startTime + time));
 					System.out.println("proper");
 				}
 			}
@@ -203,7 +259,8 @@ public class SimulatedController {
 	 * 
 	 * @return -1 is slot is not matched
 	 */
-	private long findNoConflictStartTime(List<Long> list, long start, long stop, long time) {
+	private long findNoConflictStartTime(List<Long> list, long start,
+			long stop, long time) {
 		long tmpStart = findFirstAvaiableStartTime(list, start, time);
 		if (tmpStart + time <= stop) {
 			return tmpStart;
@@ -211,7 +268,8 @@ public class SimulatedController {
 		return -1;
 	}
 
-	private long findFirstAvaiableStartTime(List<Long> list, long start, long time) {
+	private long findFirstAvaiableStartTime(List<Long> list, long start,
+			long time) {
 		if (list.size() == 0) {
 			return start;
 		}
@@ -243,7 +301,8 @@ public class SimulatedController {
 		return startResult;
 	}
 
-	private void insertBeforeFirstSmallerValue(List<Long> currentJobTimes, long startTime, long time) {
+	private void insertBeforeFirstSmallerValue(List<Long> currentJobTimes,
+			long startTime, long time) {
 		int insertJobSlot = 0;
 		for (int it = 0; it < currentJobTimes.size(); it += 2) {
 			insertJobSlot = it;
@@ -258,29 +317,121 @@ public class SimulatedController {
 		currentJobTimes.add(insertJobSlot + 1, startTime + time);
 	}
 
-	private void sendResult(long result, Delivery delivery) throws UnsupportedEncodingException, IOException {
+	private void sendResult(long result, Delivery delivery)
+			throws UnsupportedEncodingException, IOException {
 		BasicProperties props = delivery.getProperties();
 		BasicProperties replyProps = new BasicProperties.Builder()
 				.correlationId(props.getCorrelationId()).build();
-		channel.basicPublish("", props.getReplyTo(), replyProps,
-				String.valueOf(result).getBytes("UTF-8"));
+		channel.basicPublish("", props.getReplyTo(), replyProps, String
+				.valueOf(result).getBytes("UTF-8"));
 
-		channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
+//		channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
 	}
 
-	public void getOnePlan(Delivery delivery) throws InvalidProtocolBufferException {
+	public void getOnePlan(Delivery delivery)
+			throws IOException {
 		System.out
 				.println(" [Simulation Controller] Waiting for messages. To exit press CTRL+C");
 		String response = null;
 
-//		QueueingConsumer.Delivery delivery = consumer.nextDelivery();
-
+		// QueueingConsumer.Delivery delivery = consumer.nextDelivery();
 
 		PlanAndTransitions pat = PlanAndTransitions.parseFrom(delivery
 				.getBody());
+//		channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
 		this.plan = pat.getPlan();
 		for (TimeTransitions tt : pat.getTimeTransitionsList()) {
 			this.timeTransitions.put(tt.getJobId(), tt.getTimesList());
 		}
+	}
+
+	private void sendCommunicationQueue(Delivery delivery) throws IOException {
+		BasicProperties props = delivery.getProperties();
+		BasicProperties replyProps = new BasicProperties.Builder()
+				.correlationId(props.getCorrelationId()).build();
+		PlanQueueInfo.Builder b = PlanQueueInfo.newBuilder();
+		b.setPlanId(plan.getPlanId());
+		b.setQueueName(this.queueName);
+		PlanQueueInfo pq = b.build();
+		channel.basicPublish("", props.getReplyTo(), replyProps,
+				pq.toByteArray());
+
+//		channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
+	}
+	
+	/**
+	 * important 
+	 * 
+	 * 
+	 * @param state : wymysl sobie jakies stany posrednie miedzy 
+	 * 0 -zakonczono symulacje
+	 * 1 - symulacja trwa
+	 * np 2 - warto czekac na koniec symulacji
+	 * 3 - nie warto czekac na koniec symulacji
+	 * @param predictionTime
+	 * @return
+	 */
+	private synchronized SimulationState createState(int state, long predictionTime){
+		SimulationState.Builder b = SimulationState.newBuilder();
+		b.setState(state);
+		b.setPredictedExecutionTime(predictionTime);
+		return b.build();		
+	}
+
+	private void startCommunicationThread() {
+		new Thread(new Runnable() {
+			ConnectionFactory factory = new ConnectionFactory();
+			Connection connection = null;
+			Channel channel = null;
+
+			@Override
+			public void run() {
+				try {
+					factory.setHost("localhost");
+
+					connection = factory.newConnection();
+					channel = connection.createChannel();
+
+					channel.queueDeclare(queueName, false,
+							false, false, null);
+
+					channel.basicQos(1);
+
+					QueueingConsumer consumer1 = new QueueingConsumer(channel);
+					channel.basicConsume(queueName, true,
+							consumer1);
+
+					while (true) {
+						QueueingConsumer.Delivery delivery = consumer1
+								.nextDelivery();
+						//unused
+						String msg = new String(delivery.getBody());
+						System.out.println(" [SimulatedController] Received '"
+								+ msg + "'");
+						if (msg.equals(REMOVE_ACTIVE_PLAN_MESSAGE)){
+							isCancelled.set(true);
+							sendState(delivery);
+						} else if (msg.equals(GET_STATE_MESSAGE)){
+							sendState(delivery);
+						}
+					}
+				} catch (IOException | ShutdownSignalException
+						| ConsumerCancelledException | InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+
+			private void sendState(Delivery delivery) throws IOException {
+				BasicProperties props = delivery.getProperties();
+				BasicProperties replyProps = new BasicProperties.Builder()
+						.correlationId(props.getCorrelationId()).build();
+				Random r = new Random();
+
+				channel.basicPublish("", props.getReplyTo(), replyProps,
+						simulationState.toByteArray());
+
+			}
+		}).start();
 	}
 }

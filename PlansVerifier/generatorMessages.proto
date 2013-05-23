@@ -4,21 +4,6 @@ package messages;
 option java_package = "pl.agh.miss.proto";
 option java_outer_classname = "GeneratorMessage";
 
-//message PassTime {
-//	required int32 machineId = 1;
-//	required int32 time = 2;
-//}
-//
-//message Plan {
-	//required int32 jobId = 1;
-//	repeated PassTime times = 2;
-//}
-//
-//message PlanRemoval {
-	//required int32 jobId = 1;
-//}
-//
-//////////////////////////////////////
 message PassTime {
 	required int32 machineId = 1;
 	required int64 time = 2;
@@ -38,10 +23,21 @@ message Plan {
 	required int32 planId = 1;
 	repeated Task tasks = 2;
 }
+message Plans {
+	repeated Plan plans = 1;
+}
 message PlanRemoval {
 	required int32 planId = 1;
 }
 message PlanAndTransitions {
 	required Plan plan = 1;
 	repeated TimeTransitions timeTransitions = 2;
+}
+message PlanQueueInfo {
+	required int32 planId = 1;
+	required string queueName = 2;
+}
+message SimulationState {
+	required int32 state = 1;
+	required int64 predictedExecutionTime = 2;
 }

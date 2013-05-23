@@ -68,7 +68,7 @@ public class SimulationManager implements Runnable {
 		}
 
 		// sending results
-		this.evaluator.sendResults(resultsMap);
+//		this.evaluator.sendResults(resultsMap);
 
 		// run new simulation
 		planManager.afterAllSimulationsAreDone();
