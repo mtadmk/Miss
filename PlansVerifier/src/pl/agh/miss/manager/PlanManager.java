@@ -133,8 +133,8 @@ public class PlanManager {
 								// dodawanie joba do wykonania
 								Plan plan = Plan.parseFrom(delivery.getBody());
 								addPlan(plan);
-//								System.out
-//										.println("[PlanManager] Received new plan");
+								System.out
+										.println("[PlanManager] Received new plan");
 								break;
 							case REMOVE_PLAN_BIND_KEY:
 								// usuwanie jobow lub ich zatrzymywanie po id

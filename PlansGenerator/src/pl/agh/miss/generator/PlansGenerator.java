@@ -322,7 +322,7 @@ public class PlansGenerator {
 							e.printStackTrace();
 						}						
 					}
-					System.out.println("CONTROLLER: new plan");
+//					System.out.println("CONTROLLER: new plan");
 					boolean areNextTask = false;
 					for (Task task : getCurrentPlan().getTasksList()){
 						if (!areNextTask){

@@ -36,7 +36,7 @@ public class SimulatedController {
 	private static final String GET_STATE_MESSAGE = "getState";
 	protected static final String EXCHANGE_NAME_FINISH = "EXCHANGE_NAME_FINISH";
 	private final static String BIND_KEY = "EVALUATOR_STANDARD_BIND_KEY";
-	
+
 	private AtomicBoolean canFinish = new AtomicBoolean(false);
 
 	// ready simulate next plan
@@ -91,8 +91,8 @@ public class SimulatedController {
 	}
 
 	public static void main(String[] args) {
-		if (args.length > 0){
-			brokerHost=args[0];
+		if (args.length > 0) {
+			brokerHost = args[0];
 		}
 		SimulatedController sc = new SimulatedController();
 		sc.run();
@@ -112,20 +112,28 @@ public class SimulatedController {
 						+ plan.getPlanId());
 
 				simulationState = createState(startingState, -1);
-
-				long result = getJobShopTime();
-				Thread.sleep(10000);
-
-				simulationState = createState(0, result);
-				if (isCancelled.get()) {
-					canFinish.set(true);
-				}
-				while (!canFinish.get()) {
-					Thread.sleep(500);
-				}
 				
-				sendFinishedSimulation(simulationState);
-				
+				long result = Long.MAX_VALUE;
+				try {
+					result = getJobShopTime();
+				} catch (NullPointerException e) {
+					// pass
+					System.out.println("Error during simulation. Trying again");
+					simulationState = createState(0, result);
+					sendFinishedSimulation(simulationState);
+					continue;
+				}
+					Thread.sleep(10000);
+
+					simulationState = createState(0, result);
+					if (isCancelled.get()) {
+						canFinish.set(true);
+					}
+					while (!canFinish.get()) {
+						Thread.sleep(500);
+					}
+
+					sendFinishedSimulation(simulationState);
 				System.out
 						.println("[SIMULATED CONTROLLER] Simulation finished");
 				Thread.sleep(200);
@@ -147,9 +155,9 @@ public class SimulatedController {
 			}
 		}
 	}
-	
+
 	private void sendFinishedSimulation(SimulationState ss) {
-		
+
 		ConnectionFactory factory = new ConnectionFactory();
 		factory.setHost(brokerHost);
 		Connection connection;
@@ -171,12 +179,11 @@ public class SimulatedController {
 		}
 	}
 
-
 	/**
 	 * 
 	 * @return
 	 */
-	private long getJobShopTime() {
+	private long getJobShopTime() throws NullPointerException {
 
 		setSimulationState(startingState);
 
@@ -271,10 +278,15 @@ public class SimulatedController {
 					int curMachSlotsSizeBeforeInsert = currentMachineSlots
 							.size();
 					startTime = findFirstAvaiableStartTime(currentJobTimes,
-							currentMachineSlots.get(curMachSlotsSizeBeforeInsert - 1), time);
-					currentMachineSlots.add(curMachSlotsSizeBeforeInsert, startTime);
-					currentMachineSlots.add(curMachSlotsSizeBeforeInsert + 1, startTime + time);
-					insertBeforeFirstSmallerValue(currentJobTimes, startTime, time);
+							currentMachineSlots
+									.get(curMachSlotsSizeBeforeInsert - 1),
+							time);
+					currentMachineSlots.add(curMachSlotsSizeBeforeInsert,
+							startTime);
+					currentMachineSlots.add(curMachSlotsSizeBeforeInsert + 1,
+							startTime + time);
+					insertBeforeFirstSmallerValue(currentJobTimes, startTime,
+							time);
 				}
 				// proper free slot
 				else {
@@ -289,11 +301,13 @@ public class SimulatedController {
 				}
 			}
 			++taskIt;
-			progressPercentage = (float)taskIt/taskSize;
-			if (progressPercentage >=  worthWaitingPercent) {
-				setSimulationState(worthWaitingState,machineSlotsList,	progressPercentage);
-			}else{
-				setSimulationState(simulationState.getState() ,machineSlotsList,	progressPercentage);
+			progressPercentage = (float) taskIt / taskSize;
+			if (progressPercentage >= worthWaitingPercent) {
+				setSimulationState(worthWaitingState, machineSlotsList,
+						progressPercentage);
+			} else {
+				setSimulationState(simulationState.getState(),
+						machineSlotsList, progressPercentage);
 			}
 		}
 		if (isCancelled.get()) {
@@ -310,18 +324,21 @@ public class SimulatedController {
 		return max;
 	}
 
-	private long magicznaKula(List<List<Long>> machineSlotsList, float percentage) {
+	private long magicznaKula(List<List<Long>> machineSlotsList,
+			float percentage) {
 		long max = 0;
 		for (List<Long> tmpList : machineSlotsList) {
 			long tmpMax = tmpList.get(tmpList.size() - 1);
 			max = Math.max(max, tmpMax);
 		}
 
-		return (long) (max * ((float)1/percentage));
+		return (long) (max * ((float) 1 / percentage));
 	}
-	
-	private void setSimulationState(int state, List<List<Long>> machineSlotsList, float percentage) {
-		this.simulationState = createState(state, magicznaKula(machineSlotsList, percentage));
+
+	private void setSimulationState(int state,
+			List<List<Long>> machineSlotsList, float percentage) {
+		this.simulationState = createState(state,
+				magicznaKula(machineSlotsList, percentage));
 	}
 
 	private void setSimulationState(int state) {
@@ -431,7 +448,7 @@ public class SimulatedController {
 		SimulationState.Builder b = SimulationState.newBuilder();
 		b.setState(state);
 		b.setPredictedExecutionTime(predictionTime);
-		if (plan != null){
+		if (plan != null) {
 			b.setPlan(plan);
 		}
 		return b.build();
