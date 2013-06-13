@@ -40,4 +40,5 @@ message PlanQueueInfo {
 message SimulationState {
 	required int32 state = 1;
 	required int64 predictedExecutionTime = 2;
+	optional Plan plan = 3;
 }

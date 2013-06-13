@@ -13,6 +13,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import pl.agh.miss.proto.GeneratorMessage.PassTime;
 import pl.agh.miss.proto.GeneratorMessage.Plan;
+import pl.agh.miss.proto.GeneratorMessage.PlanAndTransitions;
 import pl.agh.miss.proto.GeneratorMessage.PlanRemoval;
 import pl.agh.miss.proto.GeneratorMessage.Task;
 import pl.agh.miss.proto.GeneratorMessage.TimeTransitions;
@@ -25,6 +26,7 @@ import com.rabbitmq.client.QueueingConsumer;
 import com.rabbitmq.client.ShutdownSignalException;
 
 public class PlansGenerator {
+	private static String brokerHost = "localhost";
 	Random r = new Random();
 	private Plan currentPlan;
 
@@ -36,15 +38,18 @@ public class PlansGenerator {
 	private Map<Integer, TimeTransitions> transitionsMap = new ConcurrentHashMap<>();
 
 	private static final String ADD_PLAN_BIND_KEY = "addplanbindkey";
-	private static final String REMOVE_PLAN_BIND_KEY = "removeplanbindkey";
+//	private static final String REMOVE_PLAN_BIND_KEY = "removeplanbindkey";
 	private static final String REMOVE_PLAN_ALL_BIND_KEY = "removeplanallbindkey";
+	private static final String ADD_ALL_TRANSITION_BIND_KEY = "addalltransitionbindkey";
 	private static final String ADD_TRANSITION_BIND_KEY = "addtransitionbindkey";
-	private static final String REMOVE_TRANSITION_BIND_KEY = "removetransitionbindkey";
+//	private static final String REMOVE_TRANSITION_BIND_KEY = "removetransitionbindkey";
 	private static final String REMOVE_TRANSITION_ALL_BIND_KEY = "removetransitionallbindkey";
 	public final static String EXCHANGE_NAME = "GeneratorQueue";
 	public final static String EXCHANGE_NAME_EVALUATOR = "EvaluatorBestTime";
 	private final static String BIND_KEY = "EVALUATOR_STANDARD_BIND_KEY";
 
+	private static Plan tmpPlan;
+	List<Task> firstTasks = new LinkedList<>();
 	private static final int MACHINES_COUNT = 3;
 	private static final int JOBS_COUNT = 3;
 	AtomicBoolean isNewPlan = new AtomicBoolean(false);
@@ -56,6 +61,9 @@ public class PlansGenerator {
 	public static void main(String[] args) throws InterruptedException {
 		PlansGenerator gen = new PlansGenerator();
 		try {
+			if (args.length > 0){
+				brokerHost = args[0];	
+			}
 			gen.run();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -66,10 +74,10 @@ public class PlansGenerator {
 	Channel channel = null;
 
 	public void run() throws InterruptedException, IOException {
-		
+		tmpPlan = buildTmpPlan();
 		newControllerThread();
 		ConnectionFactory factory = new ConnectionFactory();
-		factory.setHost("localhost");
+		factory.setHost(brokerHost);
 		try {
 			connection = factory.newConnection();
 			channel = connection.createChannel();
@@ -82,33 +90,39 @@ public class PlansGenerator {
 			}
 
 			// send transitions
+			PlanAndTransitions.Builder pt = PlanAndTransitions.newBuilder();
+			pt.setPlan(tmpPlan);
 			for (Integer jobid : globalJobsIds) {
 				TimeTransitions transition = buildSimpleTransition(jobid);
-				channel.basicPublish(EXCHANGE_NAME, ADD_TRANSITION_BIND_KEY,
-						null, transition.toByteArray());
+				pt.addTimeTransitions(transition);
+//				channel.basicPublish(EXCHANGE_NAME, ADD_TRANSITION_BIND_KEY,
+//						null, transition.toByteArray());
 				transitionsMap.put(jobid, transition);
 				System.out.println(" [Generator] Sent trans'" + transition.getJobId() + "'");
 			}
+			channel.basicPublish(EXCHANGE_NAME, ADD_ALL_TRANSITION_BIND_KEY,
+					null, pt.build().toByteArray());
+			
 			
 			//mam poczatkowe tranzycje - i sa wyslane na maszyne
 
+			System.out.print(" [Generator] Sent plans ");
 			// insert jobs or other operations
 			int ii = 3;
 			while (ii-->0) {
-//			while (true) {
 				Plan plan = buildSimplePlan(r.nextInt());
 				if (ii == 0){
 					waitOnTask = plan.getTasks(r.nextInt(plan.getTasksCount()));
 				}
 				channel.basicPublish(EXCHANGE_NAME, ADD_PLAN_BIND_KEY, null,
 						plan.toByteArray());
-				System.out.println(" [Generator] Sent plan'" + plan.getPlanId() + "'");
-//				Thread.sleep(200 + r.nextInt(500));
-			}
+
+				 System.out.print(plan.getPlanId() + ", ");
+			}	
+			System.out.println("'");
 			
 			startSimulationThread();
 
-			List<Task> firstTasks = new LinkedList<>();
 			
 			while (true){
 				if (r.nextInt() % 3 == 1){
@@ -116,12 +130,18 @@ public class PlansGenerator {
 					int jobid = r.nextInt();
 					globalJobsIds.add(jobid);
 					TimeTransitions transition = buildSimpleTransition(jobid);
+					
+//PO wyslaniu tranzycji powinny sie raczej wszystkie plany uaktualnic - 					
+					
 					channel.basicPublish(EXCHANGE_NAME, ADD_TRANSITION_BIND_KEY,
 							null, transition.toByteArray());
 					transitionsMap.put(jobid, transition);
+					channel.basicPublish(EXCHANGE_NAME, REMOVE_TRANSITION_ALL_BIND_KEY,
+							null, transition.toByteArray());
 					System.out.println(" [Generator] Sent trans'" + transition.getJobId() + "'");
 				} 
 				
+				System.out.print(" [Generator] Sent plans ");
 				ii = 3;
 				while (ii-->0) {
 					Plan plan = buildSimplePlan(r.nextInt());
@@ -130,8 +150,11 @@ public class PlansGenerator {
 					}
 					channel.basicPublish(EXCHANGE_NAME, ADD_PLAN_BIND_KEY, null,
 							plan.toByteArray());
-					System.out.println(" [Generator] Sent plan '" + plan.getPlanId() + "'");
+					 System.out.print(plan.getPlanId() + ", ");
 				}	
+				System.out.println("'");
+				
+//TRZEBA usuwac stare plany jak sie dodaje nowe joby!
 				
 				Thread.sleep(6000);
 			}
@@ -147,8 +170,7 @@ public class PlansGenerator {
 
 
 	private List<Task> getFirstTasks() {
-		// TODO Auto-generated method stub
-		return null;
+		return firstTasks;
 	}
 
 	private TimeTransitions buildSimpleTransition(int jobId) {
@@ -179,6 +201,17 @@ public class PlansGenerator {
 		rplan.setPlanId(1);
 
 		return rplan.build();
+	}
+	private Plan buildTmpPlan(){
+		Plan.Builder plan = Plan.newBuilder();
+
+		plan.setPlanId(-1);
+		Task.Builder t = Task.newBuilder();
+		t.setJobId(-1);
+		t.setMachineId(-1);
+		plan.addTasks(t);
+		
+		return plan.build();
 	}
 
 	private Plan buildSimplePlan(int id) {
@@ -230,7 +263,7 @@ public class PlansGenerator {
 			@Override
 			public void run() {
 				ConnectionFactory factory = new ConnectionFactory();
-				factory.setHost("localhost");
+				factory.setHost(brokerHost);
 				Connection connection;
 				try {
 					connection = factory.newConnection();
@@ -302,7 +335,7 @@ public class PlansGenerator {
 								if (pt.getMachineId() == task.getMachineId()){
 									if (pt.getTime()!= 0){
 										//obejscie jobow ktore sie wykonuja
-										System.out.println("simulating jobid: " + task.getJobId() + ", machine: " + task.getMachineId());
+//										System.out.println("simulating jobid: " + task.getJobId() + ", machine: " + task.getMachineId());
 									}
 									PassTime.Builder newPassTime = PassTime.newBuilder();
 									newPassTime.setMachineId(pt.getMachineId());
@@ -329,12 +362,13 @@ public class PlansGenerator {
 							try {
 								channel.basicPublish(EXCHANGE_NAME, REMOVE_PLAN_ALL_BIND_KEY,
 										null, "".getBytes());
+								PlanAndTransitions.Builder pt = PlanAndTransitions.newBuilder();
+								pt.setPlan(tmpPlan);
 								for (Integer id : transitionsMap.keySet()){
-									
-										channel.basicPublish(EXCHANGE_NAME, ADD_TRANSITION_BIND_KEY,
-												null, transitionsMap.get(id).toByteArray());
-									
+									pt.addTimeTransitions(transitionsMap.get(id));									
 								}
+								channel.basicPublish(EXCHANGE_NAME, ADD_ALL_TRANSITION_BIND_KEY,
+										null, pt.build().toByteArray());
 							} catch (IOException e) {
 								// TODO Auto-generated catch block
 								e.printStackTrace();

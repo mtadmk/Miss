@@ -21,7 +21,7 @@ import com.rabbitmq.client.ConsumerCancelledException;
 import com.rabbitmq.client.QueueingConsumer;
 import com.rabbitmq.client.ShutdownSignalException;
 
-public class CommunicationAgent implements Callable<ResultStruct> {
+public class CommunicationAgent_LEGACY implements Callable<ResultStruct> {
 
 	private static final String EXCHANGE_NAME_AGENT = "AGENT_EXHANGE";
 	private static final String TIME_TRANSITIONS_BIND_KEY = "TIME_TRANSITIONS_BIND_KEY";
@@ -35,7 +35,7 @@ public class CommunicationAgent implements Callable<ResultStruct> {
 	private QueueingConsumer consumer;
 	private String corrId;
 
-	public CommunicationAgent(Plan plan,
+	public CommunicationAgent_LEGACY(Plan plan,
 			Map<Integer, List<PassTime>> timeTransitions) {
 		this.plan = plan;
 		this.timeTranstitions = timeTransitions;

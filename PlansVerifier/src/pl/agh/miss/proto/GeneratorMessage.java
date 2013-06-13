@@ -33,24 +33,6 @@ public final class GeneratorMessage {
   }
   /**
    * Protobuf type {@code messages.PassTime}
-   *
-   * <pre>
-   *message PassTime {
-   *	required int32 machineId = 1;
-   *	required int32 time = 2;
-   *}
-   *
-   *message Plan {
-   *required int32 jobId = 1;
-   *	repeated PassTime times = 2;
-   *}
-   *
-   *message PlanRemoval {
-   *required int32 jobId = 1;
-   *}
-   *
-   * ////////////////////////////////////
-   * </pre>
    */
   public static final class PassTime extends
       com.google.protobuf.GeneratedMessage
@@ -309,24 +291,6 @@ public final class GeneratorMessage {
     }
     /**
      * Protobuf type {@code messages.PassTime}
-     *
-     * <pre>
-     *message PassTime {
-     *	required int32 machineId = 1;
-     *	required int32 time = 2;
-     *}
-     *
-     *message Plan {
-     *required int32 jobId = 1;
-     *	repeated PassTime times = 2;
-     *}
-     *
-     *message PlanRemoval {
-     *required int32 jobId = 1;
-     *}
-     *
-     * ////////////////////////////////////
-     * </pre>
      */
     public static final class Builder extends
         com.google.protobuf.GeneratedMessage.Builder<Builder>
@@ -5583,6 +5547,20 @@ public final class GeneratorMessage {
      * <code>required int64 predictedExecutionTime = 2;</code>
      */
     long getPredictedExecutionTime();
+
+    // optional .messages.Plan plan = 3;
+    /**
+     * <code>optional .messages.Plan plan = 3;</code>
+     */
+    boolean hasPlan();
+    /**
+     * <code>optional .messages.Plan plan = 3;</code>
+     */
+    pl.agh.miss.proto.GeneratorMessage.Plan getPlan();
+    /**
+     * <code>optional .messages.Plan plan = 3;</code>
+     */
+    pl.agh.miss.proto.GeneratorMessage.PlanOrBuilder getPlanOrBuilder();
   }
   /**
    * Protobuf type {@code messages.SimulationState}
@@ -5643,6 +5621,19 @@ public final class GeneratorMessage {
             case 16: {
               bitField0_ |= 0x00000002;
               predictedExecutionTime_ = input.readInt64();
+              break;
+            }
+            case 26: {
+              pl.agh.miss.proto.GeneratorMessage.Plan.Builder subBuilder = null;
+              if (((bitField0_ & 0x00000004) == 0x00000004)) {
+                subBuilder = plan_.toBuilder();
+              }
+              plan_ = input.readMessage(pl.agh.miss.proto.GeneratorMessage.Plan.PARSER, extensionRegistry);
+              if (subBuilder != null) {
+                subBuilder.mergeFrom(plan_);
+                plan_ = subBuilder.buildPartial();
+              }
+              bitField0_ |= 0x00000004;
               break;
             }
           }
@@ -5717,9 +5708,32 @@ public final class GeneratorMessage {
       return predictedExecutionTime_;
     }
 
+    // optional .messages.Plan plan = 3;
+    public static final int PLAN_FIELD_NUMBER = 3;
+    private pl.agh.miss.proto.GeneratorMessage.Plan plan_;
+    /**
+     * <code>optional .messages.Plan plan = 3;</code>
+     */
+    public boolean hasPlan() {
+      return ((bitField0_ & 0x00000004) == 0x00000004);
+    }
+    /**
+     * <code>optional .messages.Plan plan = 3;</code>
+     */
+    public pl.agh.miss.proto.GeneratorMessage.Plan getPlan() {
+      return plan_;
+    }
+    /**
+     * <code>optional .messages.Plan plan = 3;</code>
+     */
+    public pl.agh.miss.proto.GeneratorMessage.PlanOrBuilder getPlanOrBuilder() {
+      return plan_;
+    }
+
     private void initFields() {
       state_ = 0;
       predictedExecutionTime_ = 0L;
+      plan_ = pl.agh.miss.proto.GeneratorMessage.Plan.getDefaultInstance();
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -5734,6 +5748,12 @@ public final class GeneratorMessage {
         memoizedIsInitialized = 0;
         return false;
       }
+      if (hasPlan()) {
+        if (!getPlan().isInitialized()) {
+          memoizedIsInitialized = 0;
+          return false;
+        }
+      }
       memoizedIsInitialized = 1;
       return true;
     }
@@ -5746,6 +5766,9 @@ public final class GeneratorMessage {
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         output.writeInt64(2, predictedExecutionTime_);
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        output.writeMessage(3, plan_);
       }
       getUnknownFields().writeTo(output);
     }
@@ -5763,6 +5786,10 @@ public final class GeneratorMessage {
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
           .computeInt64Size(2, predictedExecutionTime_);
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(3, plan_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -5872,6 +5899,7 @@ public final class GeneratorMessage {
       }
       private void maybeForceBuilderInitialization() {
         if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+          getPlanFieldBuilder();
         }
       }
       private static Builder create() {
@@ -5884,6 +5912,12 @@ public final class GeneratorMessage {
         bitField0_ = (bitField0_ & ~0x00000001);
         predictedExecutionTime_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000002);
+        if (planBuilder_ == null) {
+          plan_ = pl.agh.miss.proto.GeneratorMessage.Plan.getDefaultInstance();
+        } else {
+          planBuilder_.clear();
+        }
+        bitField0_ = (bitField0_ & ~0x00000004);
         return this;
       }
 
@@ -5920,6 +5954,14 @@ public final class GeneratorMessage {
           to_bitField0_ |= 0x00000002;
         }
         result.predictedExecutionTime_ = predictedExecutionTime_;
+        if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
+          to_bitField0_ |= 0x00000004;
+        }
+        if (planBuilder_ == null) {
+          result.plan_ = plan_;
+        } else {
+          result.plan_ = planBuilder_.build();
+        }
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -5942,6 +5984,9 @@ public final class GeneratorMessage {
         if (other.hasPredictedExecutionTime()) {
           setPredictedExecutionTime(other.getPredictedExecutionTime());
         }
+        if (other.hasPlan()) {
+          mergePlan(other.getPlan());
+        }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
       }
@@ -5954,6 +5999,12 @@ public final class GeneratorMessage {
         if (!hasPredictedExecutionTime()) {
           
           return false;
+        }
+        if (hasPlan()) {
+          if (!getPlan().isInitialized()) {
+            
+            return false;
+          }
         }
         return true;
       }
@@ -6043,6 +6094,123 @@ public final class GeneratorMessage {
         return this;
       }
 
+      // optional .messages.Plan plan = 3;
+      private pl.agh.miss.proto.GeneratorMessage.Plan plan_ = pl.agh.miss.proto.GeneratorMessage.Plan.getDefaultInstance();
+      private com.google.protobuf.SingleFieldBuilder<
+          pl.agh.miss.proto.GeneratorMessage.Plan, pl.agh.miss.proto.GeneratorMessage.Plan.Builder, pl.agh.miss.proto.GeneratorMessage.PlanOrBuilder> planBuilder_;
+      /**
+       * <code>optional .messages.Plan plan = 3;</code>
+       */
+      public boolean hasPlan() {
+        return ((bitField0_ & 0x00000004) == 0x00000004);
+      }
+      /**
+       * <code>optional .messages.Plan plan = 3;</code>
+       */
+      public pl.agh.miss.proto.GeneratorMessage.Plan getPlan() {
+        if (planBuilder_ == null) {
+          return plan_;
+        } else {
+          return planBuilder_.getMessage();
+        }
+      }
+      /**
+       * <code>optional .messages.Plan plan = 3;</code>
+       */
+      public Builder setPlan(pl.agh.miss.proto.GeneratorMessage.Plan value) {
+        if (planBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          plan_ = value;
+          onChanged();
+        } else {
+          planBuilder_.setMessage(value);
+        }
+        bitField0_ |= 0x00000004;
+        return this;
+      }
+      /**
+       * <code>optional .messages.Plan plan = 3;</code>
+       */
+      public Builder setPlan(
+          pl.agh.miss.proto.GeneratorMessage.Plan.Builder builderForValue) {
+        if (planBuilder_ == null) {
+          plan_ = builderForValue.build();
+          onChanged();
+        } else {
+          planBuilder_.setMessage(builderForValue.build());
+        }
+        bitField0_ |= 0x00000004;
+        return this;
+      }
+      /**
+       * <code>optional .messages.Plan plan = 3;</code>
+       */
+      public Builder mergePlan(pl.agh.miss.proto.GeneratorMessage.Plan value) {
+        if (planBuilder_ == null) {
+          if (((bitField0_ & 0x00000004) == 0x00000004) &&
+              plan_ != pl.agh.miss.proto.GeneratorMessage.Plan.getDefaultInstance()) {
+            plan_ =
+              pl.agh.miss.proto.GeneratorMessage.Plan.newBuilder(plan_).mergeFrom(value).buildPartial();
+          } else {
+            plan_ = value;
+          }
+          onChanged();
+        } else {
+          planBuilder_.mergeFrom(value);
+        }
+        bitField0_ |= 0x00000004;
+        return this;
+      }
+      /**
+       * <code>optional .messages.Plan plan = 3;</code>
+       */
+      public Builder clearPlan() {
+        if (planBuilder_ == null) {
+          plan_ = pl.agh.miss.proto.GeneratorMessage.Plan.getDefaultInstance();
+          onChanged();
+        } else {
+          planBuilder_.clear();
+        }
+        bitField0_ = (bitField0_ & ~0x00000004);
+        return this;
+      }
+      /**
+       * <code>optional .messages.Plan plan = 3;</code>
+       */
+      public pl.agh.miss.proto.GeneratorMessage.Plan.Builder getPlanBuilder() {
+        bitField0_ |= 0x00000004;
+        onChanged();
+        return getPlanFieldBuilder().getBuilder();
+      }
+      /**
+       * <code>optional .messages.Plan plan = 3;</code>
+       */
+      public pl.agh.miss.proto.GeneratorMessage.PlanOrBuilder getPlanOrBuilder() {
+        if (planBuilder_ != null) {
+          return planBuilder_.getMessageOrBuilder();
+        } else {
+          return plan_;
+        }
+      }
+      /**
+       * <code>optional .messages.Plan plan = 3;</code>
+       */
+      private com.google.protobuf.SingleFieldBuilder<
+          pl.agh.miss.proto.GeneratorMessage.Plan, pl.agh.miss.proto.GeneratorMessage.Plan.Builder, pl.agh.miss.proto.GeneratorMessage.PlanOrBuilder> 
+          getPlanFieldBuilder() {
+        if (planBuilder_ == null) {
+          planBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+              pl.agh.miss.proto.GeneratorMessage.Plan, pl.agh.miss.proto.GeneratorMessage.Plan.Builder, pl.agh.miss.proto.GeneratorMessage.PlanOrBuilder>(
+                  plan_,
+                  getParentForChildren(),
+                  isClean());
+          plan_ = null;
+        }
+        return planBuilder_;
+      }
+
       // @@protoc_insertion_point(builder_scope:messages.SimulationState)
     }
 
@@ -6125,10 +6293,11 @@ public final class GeneratorMessage {
       "\n\022PlanAndTransitions\022\034\n\004plan\030\001 \002(\0132\016.mes",
       "sages.Plan\0222\n\017timeTransitions\030\002 \003(\0132\031.me" +
       "ssages.TimeTransitions\"2\n\rPlanQueueInfo\022" +
-      "\016\n\006planId\030\001 \002(\005\022\021\n\tqueueName\030\002 \002(\t\"@\n\017Si" +
+      "\016\n\006planId\030\001 \002(\005\022\021\n\tqueueName\030\002 \002(\t\"^\n\017Si" +
       "mulationState\022\r\n\005state\030\001 \002(\005\022\036\n\026predicte" +
-      "dExecutionTime\030\002 \002(\003B%\n\021pl.agh.miss.prot" +
-      "oB\020GeneratorMessage"
+      "dExecutionTime\030\002 \002(\003\022\034\n\004plan\030\003 \001(\0132\016.mes" +
+      "sages.PlanB%\n\021pl.agh.miss.protoB\020Generat" +
+      "orMessage"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
@@ -6194,7 +6363,7 @@ public final class GeneratorMessage {
           internal_static_messages_SimulationState_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_messages_SimulationState_descriptor,
-              new java.lang.String[] { "State", "PredictedExecutionTime", });
+              new java.lang.String[] { "State", "PredictedExecutionTime", "Plan", });
           return null;
         }
       };
