@@ -218,8 +218,8 @@ public class SimulatedController {
 		}
 
 		int taskIt = 0;
-		long taskSize = taskList.size();
-		long progressPercentage = 0;
+		float taskSize = taskList.size();
+		float progressPercentage = 0;
 		for (Task task : taskList) {
 			if (isCancelled.get()) {
 				return 0;
@@ -245,10 +245,8 @@ public class SimulatedController {
 			int insertSlot = -1;
 			long startTime = 0;
 			for (int slotIt = 2; slotIt < currentMachineSlots.size(); slotIt += 2) {
-				int prevStart = slotIt - 2;
 				int prevStop = slotIt - 1;
 				int start = slotIt;
-				int stop = slotIt + 1;
 				if (currentMachineSlots.get(start)
 						- currentMachineSlots.get(prevStop) >= time) {
 					long tmpStartTime = findNoConflictStartTime(
@@ -262,33 +260,21 @@ public class SimulatedController {
 				}
 			}
 			// all slots are free (0 and 1 - empty 0)
-			// System.out.printf("job: %d, machine:  %d", jobId, machineId);
 			if (currentMachineSlots.size() == 2 && insertSlot == -1) {
 
 				startTime = findFirstAvaiableStartTime(currentJobTimes, 0, time);
 				currentMachineSlots.add(2, startTime);
 				currentMachineSlots.add(3, startTime + time);
 				insertBeforeFirstSmallerValue(currentJobTimes, startTime, time);
-				// System.out.println(" ,start: " + startTime + ", stop:  " +
-				// (startTime + time));
-				// System.out.println("empty");
 			} else {
 				if (insertSlot == -1) {
 					int curMachSlotsSizeBeforeInsert = currentMachineSlots
 							.size();
 					startTime = findFirstAvaiableStartTime(currentJobTimes,
-							currentMachineSlots
-									.get(curMachSlotsSizeBeforeInsert - 1),
-							time);
-					currentMachineSlots.add(curMachSlotsSizeBeforeInsert,
-							startTime);
-					currentMachineSlots.add(curMachSlotsSizeBeforeInsert + 1,
-							startTime + time);
-					insertBeforeFirstSmallerValue(currentJobTimes, startTime,
-							time);
-					// System.out.println(" ,start: " + startTime + ", stop:  "
-					// + (startTime + time));
-					// System.out.println("no match - end");
+							currentMachineSlots.get(curMachSlotsSizeBeforeInsert - 1), time);
+					currentMachineSlots.add(curMachSlotsSizeBeforeInsert, startTime);
+					currentMachineSlots.add(curMachSlotsSizeBeforeInsert + 1, startTime + time);
+					insertBeforeFirstSmallerValue(currentJobTimes, startTime, time);
 				}
 				// proper free slot
 				else {
@@ -302,22 +288,17 @@ public class SimulatedController {
 					// System.out.println("proper");
 				}
 			}
-			progressPercentage = (long) taskIt / taskSize;
-			if (progressPercentage >= worthWaitingPercent) {
-				setSimulationState(worthWaitingState, machineSlotsList,
-						progressPercentage);
-				try {
-					Thread.sleep(2000);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			} else {
-				setSimulationState(simulationState.getState(),
-						machineSlotsList, progressPercentage);
+			++taskIt;
+			progressPercentage = (float)taskIt/taskSize;
+			if (progressPercentage >=  worthWaitingPercent) {
+				setSimulationState(worthWaitingState,machineSlotsList,	progressPercentage);
+			}else{
+				setSimulationState(simulationState.getState() ,machineSlotsList,	progressPercentage);
 			}
 		}
-
+		if (isCancelled.get()) {
+			return 0;
+		}
 		setSimulationState(justEndingState);
 		long max = 0;
 		for (List<Long> tmpList : machineSlotsList) {
@@ -329,20 +310,18 @@ public class SimulatedController {
 		return max;
 	}
 
-	private long magicznaKula(List<List<Long>> machineSlotsList, long percentage) {
+	private long magicznaKula(List<List<Long>> machineSlotsList, float percentage) {
 		long max = 0;
 		for (List<Long> tmpList : machineSlotsList) {
 			long tmpMax = tmpList.get(tmpList.size() - 1);
 			max = Math.max(max, tmpMax);
 		}
 
-		return max * ((long) 1 / (percentage != 0 ? percentage : 1));
+		return (long) (max * ((float)1/percentage));
 	}
-
-	private void setSimulationState(int state,
-			List<List<Long>> machineSlotsList, long percentage) {
-		this.simulationState = createState(state,
-				magicznaKula(machineSlotsList, percentage));
+	
+	private void setSimulationState(int state, List<List<Long>> machineSlotsList, float percentage) {
+		this.simulationState = createState(state, magicznaKula(machineSlotsList, percentage));
 	}
 
 	private void setSimulationState(int state) {
